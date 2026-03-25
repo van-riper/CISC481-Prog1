@@ -16,7 +16,7 @@ from definitions import (
     TrackLayout,
     Yard,
 )
-from utilities import backtrack, test_search_func
+from utilities import backtrack, convert_to_heap_entry, test_search_func
 
 
 def possible_actions(track_layout: TrackLayout, state: State) -> list[Action]:
@@ -154,11 +154,11 @@ def blind_tree_search(yard: Yard, _: bool = False) -> Solution:
 
         # Iterate through each state-action pair expanded
         # from the current node's state and the yard's layout
-        for result in expand(node.state, yard.track_layout):
+        for result_pair in expand(node.state, yard.track_layout):
 
             # Create and append a new node to the fringe using the
             # result's state, action, and the current node as its parent
-            fringe.append(Node(result.state, result.action, node))
+            fringe.append(Node(*result_pair, node))
 
     # This point in the function can only be reached if no solution was found,
     # which is indicated by the empty action list in this returned solution
@@ -178,13 +178,13 @@ def heuristic(state: State, state_goal: State) -> int:
     cost_estimated: int = 0
 
     # Iterate through each track of the given state of the yard
-    for i in range(len(state)):
+    for i in range(len(state)):  # pylint: disable=consider-using-enumerate
 
         # Get the trains from both the current track and the goal track
         train, train_goal = state[i], state_goal[i]
 
         # Iterate through each car in both trains
-        for j in range(len(train)):
+        for j in range(len(train)):  # pylint: disable=consider-using-enumerate
 
             # Skip this car if it's the engine
             if train[j] == "*":
@@ -228,7 +228,7 @@ def a_star_search(yard: Yard, informed: bool) -> Solution:
     node.cost_estimated = heuristic(node.state, yard.state_goal)
 
     # Initialize the fringe as a heap with the root node inside
-    fringe: list[HeapEntry] = [node.as_heap_entry(entry_count)]
+    fringe: list[HeapEntry] = [convert_to_heap_entry(node, entry_count)]
 
     # Initialize the graph if the `informed` flag was passed
     graph: dict[State, int] = {node.state: node.cost_actual} if informed else {}
@@ -252,7 +252,7 @@ def a_star_search(yard: Yard, informed: bool) -> Solution:
 
         # Iterate through each state-action pair expanded
         # from the current node's state and the yard's layout
-        for result in expand(node.state, yard.track_layout):
+        for result_pair in expand(node.state, yard.track_layout):
 
             # Increment the current node's new actual path cost and store it
             cost_new = node.cost_actual + 1
@@ -262,14 +262,15 @@ def a_star_search(yard: Yard, informed: bool) -> Solution:
 
                 # Skip if the current result's state is
                 # already reached with a lower or equal cost
-                if result.state in graph and cost_new >= graph[result.state]:
-                    continue
+                if result_pair.state in graph:
+                    if cost_new >= graph[result_pair.state]:
+                        continue
 
                 # Store the result's state in the graph with the new path cost
-                graph[result.state] = cost_new
+                graph[result_pair.state] = cost_new
 
             # Create a new node as a child of the current node
-            node_child = Node(result.state, result.action, node)
+            node_child = Node(*result_pair, node)
 
             # Assign the new actual path cost to the child node's path cost
             node_child.cost_actual = cost_new
@@ -283,7 +284,7 @@ def a_star_search(yard: Yard, informed: bool) -> Solution:
             entry_count += 1
 
             # Push the child node to the fringe as a heap entry
-            heappush(fringe, node_child.as_heap_entry(entry_count))
+            heappush(fringe, convert_to_heap_entry(node_child, entry_count))
 
     # This point in the function can only be reached if no solution was found,
     # which is indicated by the empty action list in this returned solution
@@ -334,10 +335,10 @@ def simulated_annealing_search(yard: Yard, _: bool = False) -> Solution:
             break
 
         # Pick an random state-action pair from the results list
-        result = choice(results)
+        result_pair = choice(results)
 
         # Calculate the result's estimated cost using the heuristic func
-        result_cost_estimated = heuristic(result.state, yard.state_goal)
+        result_cost_estimated = heuristic(result_pair.state, yard.state_goal)
 
         # Calculate Delta E using the difference of the
         # estimated costs from the current node and result
@@ -349,7 +350,7 @@ def simulated_annealing_search(yard: Yard, _: bool = False) -> Solution:
 
             # Reassign the current node to the result's state
             # and action with the previous node as its parent
-            node = Node(result.state, result.action, node)
+            node = Node(*result_pair, node)
 
             # Calculate the current node's heuristic estimated cost
             node.cost_estimated = result_cost_estimated

@@ -4,8 +4,25 @@ This file contains helper and testing functions for use in main script file.
 
 from time import perf_counter
 
-from definitions import Action, Findings, Node, SearchFunc, Solution, Yard
+from definitions import (
+    Action,
+    Findings,
+    HeapEntry,
+    Node,
+    SearchFunc,
+    Solution,
+    Yard,
+)
 from yards import ALL_YARDS
+
+
+def convert_to_heap_entry(node: Node, tiebreaker: int) -> HeapEntry:
+    """
+    Consumes a search tree `node` and a `tiebreaker` value.
+
+    Produces a HeapEntry object of the given `node` and `tiebreaker`.
+    """
+    return HeapEntry(node.priority(), tiebreaker, node)
 
 
 def backtrack(node: Node) -> list[Action]:

@@ -37,8 +37,8 @@ class State(tuple[Train, ...]):
     def __new__(cls, trains: Iterable[Iterable[Car]]) -> Self:
         return super().__new__(cls, tuple(Train(t) for t in trains))
 
-    # Return a mutable instance of the State
     def mutate(self) -> list[list[Car]]:
+        """Method that returns a mutable instance of the State."""
         return [list(t) for t in self]
 
 
@@ -55,10 +55,10 @@ class Action(NamedTuple):
 
 
 class ResultPair(NamedTuple):
-    """Tuple of a `State`-`Action` pair (used by the `expand` function)"""
+    """Tuple of a `State`-`Action` pair (used by the `expand` function)."""
 
-    state: State  #
-    action: Action
+    state: State  # The result's corresponding State object
+    action: Action  # The result's corresponding Action object
 
 
 @dataclass
@@ -67,17 +67,13 @@ class Node:
 
     state: State  # Node's associated State
     action: Action | None  # Node's associated Action (None if root)
-    parent: Node | None  # Node's parent Node (None if root)
+    parent: Self | None  # Node's parent Node (None if root)
     cost_actual: int = 0  # Node's actual path cost (g)
     cost_estimated: int = 0  # Node's heuristic estimate path cost (h)
 
-    # Method that returns the node's priority in the heap
     def priority(self) -> int:
+        """Method that returns the node's priority in the heap."""
         return self.cost_actual + self.cost_estimated
-
-    # Method that returns the node as a HeapEntry instance
-    def as_heap_entry(self, tiebreaker: int) -> HeapEntry:
-        return HeapEntry(self.priority(), tiebreaker, self)
 
 
 class HeapEntry(NamedTuple):
